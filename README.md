@@ -15,4 +15,4 @@ Delícia, delícia
 Assim você me mata
 Ai, se eu te pego
 Ai, ai, se eu te pego
-![System Flowchart](jogo bonito.jpg)
+![System Flowchart](jogobonito.jpg)
