@@ -113,6 +113,7 @@ Below is the flowchart illustrating the system behavior:
 
 ![System Flowchart](Diagram2.png)
 
+![System Flowchart](voltimetro.png)
 ---
 
 ## Notes and Considerations
