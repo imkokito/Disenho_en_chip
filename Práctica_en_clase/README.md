@@ -97,19 +97,13 @@ Below is the flowchart illustrating the system behavior:
 
 ![System Flowchart](Diagram.png)
 
+![System Flowchart](temperatura.png)
 ---
 
 ## Notes and Considerations
 
-* The LM34 sensor outputs **10 mV per °F**, simplifying conversion.  
-* ADC reference voltage is **3.3V**, which defines the scaling factor.  
-* Floating-point operations are minimized for embedded efficiency.  
-* Continuous LCD clearing may cause flickering (can be optimized).  
+* The LM35 sensor outputs **10 mV per °F**, simplifying conversion.  
+* ADC reference voltage is **3.3V**, which defines the scaling factor. 
 
 ---
 
-## Possible Improvements
-
-* Add temperature display in **Celsius (°C)**  
-* Implement **interrupt-driven ADC** instead of polling  
-* Optimize LCD refresh (update only changed characters)  
