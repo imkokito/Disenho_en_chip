@@ -120,18 +120,7 @@ Below is the flowchart illustrating the system behavior:
 
 * ADC resolution is **12 bits (0–4095)**  
 * Reference voltage is **3.3V**  
-* Voltage is displayed with **1 decimal precision**  
-* Manual formatting avoids using `sprintf`, improving efficiency  
-* LED color is determined by shifting ADC result bits  
+* Voltage is displayed with **1 decimal precision**    
 
 ---
 
-## Possible Improvements
-
-* Display voltage with higher precision (2 or 3 decimals)  
-* Add voltage units (`V`) to LCD output  
-* Implement smoothing/filtering for stable readings  
-* Use interrupts instead of polling for ADC  
-* Map LED colors more intuitively to voltage ranges  
-
----
