@@ -9,11 +9,11 @@ This project implements an embedded system that reads an analog voltage using a 
 
 To replicate this project, the following hardware is required:
 
-* **Development Board:** NXP FRDM-KL25Z  
+* **Microcontroller:** KL25Z  
 * **Input:** Potentiometer (connected between 3.3V and GND)  
-* **Display:** Alphanumeric LCD (16x2) operating in **8-bit mode**  
-* **Output:** RGB LED (onboard LED of FRDM-KL25Z)  
-* **Extra Components:** Breadboard, jumper wires  
+* **Display:** LCD (16x2) operating in **8-bit mode**  
+* **Output:** RGB LED (internal LED of KL25Z)  
+* **Extra Components:** Breadboard, jumper wires, resistor  
 
 ---
 
@@ -22,7 +22,7 @@ To replicate this project, the following hardware is required:
 * **Analog Input Reading:** Uses ADC0 to continuously read voltage from a potentiometer.  
 * **Real-Time Visualization:** Displays the measured voltage directly on an LCD screen.  
 * **RGB LED Control:** Uses ADC result bits to dynamically change LED color.  
-* **Efficient Conversion:** Converts ADC value into millivolts and formats it manually (without `sprintf`).  
+* **Efficient Conversion:** Converts ADC value into millivolts and formats it manually
 * **Continuous Operation:** System runs in an infinite loop updating values in real time.  
 
 ---
@@ -96,8 +96,6 @@ To replicate this project, the following hardware is required:
      ```
      2.45
      ```
-
-6. **Repeat indefinitely**
 
 ---
 
