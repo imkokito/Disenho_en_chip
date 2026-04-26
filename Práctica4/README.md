@@ -113,6 +113,6 @@ To replicate this project, the following hardware is required:
 
 Below is the flowchart illustrating the system behavior:
 
-![System Flowchart](Diagram.png)
+![System Flowchart](Diagram3.png)
 
 ---
