@@ -26,8 +26,7 @@ To replicate this project, the following hardware is required:
   * `PAUSED`  
 * **Keypad Interaction:** Allows user to resume system operation using a specific key (`*`).  
 * **LCD Feedback:** Displays current system state in real time.  
-* **Timer Integration:** TPM0 generates periodic interrupts (100 ms base timing).  
-* **Low Power Efficiency:** Uses `__WFI()` to wait for interrupts.  
+* **Timer Integration:** TPM0 generates periodic interrupts (100 ms base timing).
 
 ---
 
@@ -90,9 +89,6 @@ To replicate this project, the following hardware is required:
    * Executes periodically  
    * If system is `RUNNING`, increments internal counter  
    * If `PAUSED`, no action is taken  
-
-5. **Low Power Mode:**
-   * CPU waits using `__WFI()` until an interrupt occurs  
 
 ---
 
