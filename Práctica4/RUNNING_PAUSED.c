@@ -177,17 +177,14 @@ Part 3
 #include "MKL25Z4.h"
 #include <stdio.h>
 
-/* LCD */
 #define RS 0x04
 #define RW 0x10
 #define EN 0x20
 
 typedef enum { RUNNING, PAUSED } estado_t;
-
 volatile estado_t estado = RUNNING;
 volatile uint8_t contador_100ms = 0;
 
-/* Prototipos */
 void Init_TPM0(void);
 void Init_Button(void);
 
@@ -202,7 +199,7 @@ void LCD_sendstring(char *str);
 void delayMs(int n);
 void delayUs(int n);
 
-/* ================= MAIN ================= */
+//MAIN
 int main(void)
 {
     __disable_irq();
@@ -223,7 +220,7 @@ int main(void)
 
         if (key == 13) // '*'
         {
-            delayMs(200); // debounce
+            delayMs(200); 
 
             estado = RUNNING;
             contador_100ms = 0;
@@ -232,11 +229,11 @@ int main(void)
             LCD_sendstring("RUNNING");
         }
 
-        __WFI();
+        delayMs(10);
     }
 }
 
-/* ================= BOTON ================= */
+//BUTTON
 void Init_Button(void)
 {
     SIM->SCGC5 |= SIM_SCGC5_PORTA_MASK;
@@ -251,7 +248,6 @@ void Init_Button(void)
     NVIC_EnableIRQ(PORTA_IRQn);
 }
 
-/* ================= ISR BOTON ================= */
 void PORTA_IRQHandler(void)
 {
     if (PORTA->ISFR & (1 << 1))
@@ -265,7 +261,7 @@ void PORTA_IRQHandler(void)
     }
 }
 
-/* ================= TIMER ================= */
+//TIMER
 void Init_TPM0(void)
 {
     SIM->SCGC6 |= 0x01000000;
@@ -287,10 +283,9 @@ void TPM0_IRQHandler(void)
 
     contador_100ms++;
 
-    // Aquí puedes poner lógica de contador si quieres
 }
 
-/* ================= KEYPAD ================= */
+//KEYPAD
 void keypad_init(void)
 {
     SIM->SCGC5 |= 0x0800;
@@ -339,7 +334,7 @@ char keypad_getkey(void)
     return 0;
 }
 
-/* ================= LCD ================= */
+//LCD
 void LCD_init(void)
 {
     SIM->SCGC5 |= 0x1000;
@@ -385,7 +380,7 @@ void LCD_sendstring(char *str)
     while (*str) LCD_data(*str++);
 }
 
-/* ================= DELAYS ================= */
+//DELAY
 void delayMs(int n)
 {
     for(int i=0;i<n;i++)
@@ -398,3 +393,4 @@ void delayUs(int n)
     for(int i=0;i<n*50;i++)
         __asm("nop");
 }
+
