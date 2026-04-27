@@ -157,7 +157,12 @@ To replicate this project, the following hardware is required:
 ## System Flowchart
 
 Below is the flowchart illustrating the system behavior:
+## PT1
+![System Flowchart](diagflujo.png)
 
+![LED Control Flow](LEDS.png)
+
+## PT2
 ![System Flowchart](Diagram4.png)
 
 ![LED Control Flow](LEDS.png)
