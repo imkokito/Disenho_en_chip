@@ -1,4 +1,3 @@
-//apenas esta en pruebas
 #include "MKL25Z4.h"
 #include <stdio.h>
 
@@ -10,8 +9,15 @@ typedef enum { RUNNING, PAUSED } estado_t;
 volatile estado_t estado = RUNNING;
 volatile uint8_t contador_100ms = 0;
 
+volatile float distance_x = 0;
+
+char buffer[32];
+
+// Prototipos
+void ultrasonic_init(void);
+float medir_distancia(void);
+
 void Init_TPM0(void);
-void Init_Button(void);
 
 void keypad_init(void);
 char keypad_getkey(void);
@@ -24,29 +30,41 @@ void LCD_sendstring(char *str);
 void delayMs(int n);
 void delayUs(int n);
 
-//MAIN
+// MAIN
 int main(void)
 {
     __disable_irq();
 
     Init_TPM0();
-    Init_Button();
     keypad_init();
     LCD_init();
+    ultrasonic_init();
 
     LCD_command(0x01);
     LCD_sendstring("RUNNING");
 
     __enable_irq();
 
+    float distance;
+
     while (1)
     {
         char key = keypad_getkey();
 
-        if (key == 'B') // '*'
+        if (key == 1)
         {
-            delayMs(200);
+            distance = medir_distancia();
 
+            sprintf(buffer,"%.2f cm",distance);
+
+            LCD_command(0x01);
+            LCD_sendstring(buffer);
+
+            delayMs(500);
+        }
+
+        if (key == 13)
+        {
             estado = RUNNING;
             contador_100ms = 0;
 
@@ -58,35 +76,41 @@ int main(void)
     }
 }
 
-//BUTTON
-void Init_Button(void)
+// ULTRASONICO
+void ultrasonic_init(void)
 {
-    SIM->SCGC5 |= SIM_SCGC5_PORTA_MASK;
+    SIM->SCGC5 |= 0x0400;
 
-    PORTA->PCR[1] = PORT_PCR_MUX(1) |
-                    PORT_PCR_PE_MASK |
-                    PORT_PCR_PS_MASK |
-                    PORT_PCR_IRQC(0xA);
+    PORTB->PCR[0] = 0x100;
+    PORTB->PCR[1] = 0x100;
 
-    PTA->PDDR &= ~(1 << 1);
-
-    NVIC_EnableIRQ(PORTA_IRQn);
+    PTB->PDDR |= 0x01;
+    PTB->PDDR &= ~0x02;
 }
 
-void PORTA_IRQHandler(void)
+float medir_distancia(void)
 {
-    if (PORTA->ISFR & (1 << 1))
+    uint32_t tiempo = 0;
+
+    PTB->PCOR = 0x01;
+    delayUs(2);
+
+    PTB->PSOR = 0x01;
+    delayUs(10);
+    PTB->PCOR = 0x01;
+
+    while(!(PTB->PDIR & 0x02));
+
+    while(PTB->PDIR & 0x02)
     {
-        estado = PAUSED;
-
-        LCD_command(0x01);
-        LCD_sendstring("PAUSED");
-
-        PORTA->ISFR = (1 << 1);
+        tiempo++;
+        delayUs(1);
     }
+
+    return (tiempo * 0.0343) / 2;
 }
 
-//TIMER
+// TIMER
 void Init_TPM0(void)
 {
     SIM->SCGC6 |= 0x01000000;
@@ -107,10 +131,9 @@ void TPM0_IRQHandler(void)
     if (estado == PAUSED) return;
 
     contador_100ms++;
-
 }
 
-//KEYPAD
+// KEYPAD
 void keypad_init(void)
 {
     SIM->SCGC5 |= 0x0800;
@@ -165,11 +188,15 @@ char keypad_getkey(void)
 
     return 0;
 }
-//LCD
+
+// LCD
 void LCD_init(void)
 {
     SIM->SCGC5 |= 0x1000;
-    for(int i=0;i<8;i++) PORTD->PCR[i]=0x100;
+
+    for(int i=0;i<8;i++)
+        PORTD->PCR[i]=0x100;
+
     PTD->PDDR = 0xFF;
 
     SIM->SCGC5 |= 0x0200;
@@ -177,6 +204,7 @@ void LCD_init(void)
     PTA->PDDR |= 0x34;
 
     delayMs(30);
+
     LCD_command(0x30); delayMs(10);
     LCD_command(0x30); delayMs(1);
     LCD_command(0x30);
@@ -208,10 +236,11 @@ void LCD_data(unsigned char data)
 
 void LCD_sendstring(char *str)
 {
-    while (*str) LCD_data(*str++);
+    while (*str)
+        LCD_data(*str++);
 }
 
-//DELAY
+// DELAYS
 void delayMs(int n)
 {
     for(int i=0;i<n;i++)
