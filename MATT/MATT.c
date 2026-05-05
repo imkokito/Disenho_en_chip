@@ -1,147 +1,222 @@
 #include "MKL25Z4.h"
 #include <stdio.h>
+#include <stdlib.h>
 
+/*
+ * things to add:
+ * - Timers with interruption rather than delays.
+ * 	- every 100ms there is an interruption and the position updates,
+ * 		measures time to see how much it moved, checks limits so it doesnt fall, etc
+ *  - for the stop button thats gonna be in the web page
+ */
+
+// LCD CONTROL
+// PTA2 -> RS
+// PTA4 -> RW
+// PTA5 -> EN
+// PTD0-PTD3 -> DATA
 #define RS 0x04
 #define RW 0x10
 #define EN 0x20
 
-typedef enum { RUNNING, PAUSED } estado_t;
-volatile estado_t estado = RUNNING;
-volatile uint8_t contador_100ms = 0;
+// ULTRASONICO
+// PTB0 -> TRIG
+// PTB1 -> ECHO
+#define TRIG 0x01
+#define ECHO 0x02
 
-volatile float distance_x = 0;
+// INPUT MOTORES CON L293D
+// PTB2-PTB5
+#define IN1 0x04
+#define IN2 0x08
+#define IN3 0x10
+#define IN4 0x20
 
+// VARIABLES GLOBALES
 char buffer[32];
 
-// Prototipos
-void ultrasonic_init(void);
-float medir_distancia(void);
+float posX = 0;
+float posY = 0;
 
-void Init_TPM0(void);
+float targetX = 0;
+float targetY = 0;
 
-void keypad_init(void);
-char keypad_getkey(void);
+//PROTOTIPOS
+// DELAYS
+void delayMs(int n);
+void delayUs(int n);
 
+//LCD
 void LCD_init(void);
+void LCD_nibble(unsigned char data);
 void LCD_command(unsigned char command);
 void LCD_data(unsigned char data);
 void LCD_sendstring(char *str);
 
-void delayMs(int n);
-void delayUs(int n);
+//KEYPAD
+void keypad_init(void);
+char keypad_getkey(void);
+float keypad_getnumber(char axis);
+
+//ULTRASONIC
+void ultrasonic_init(void);
+float medir_distancia(void);
+
+//MOTOR
+void motor_init(void);
+void motor_forward(void);
+void motor_backward(void);
+void motor_stop(void);
 
 // MAIN
 int main(void)
 {
-    __disable_irq();
+    __disable_irq();// for future interruptions
 
-    Init_TPM0();
-    keypad_init();
     LCD_init();
+    keypad_init();
     ultrasonic_init();
+    motor_init();
 
-    LCD_command(0x01);
-    LCD_sendstring("RUNNING");
+    __enable_irq();// for future interruptions
 
-    __enable_irq();
+    // ask for X coordinate
+    targetX = keypad_getnumber('X');
 
-    float distance;
+    delayMs(500);
 
-    while (1)
+    // ask for Y coordinate
+    targetY = keypad_getnumber('Y');
+
+    delayMs(500);
+
+    LCD_command(0x01); //clear screen
+    LCD_sendstring("MOVIENDO...");
+    delayMs(1000);
+
+    while(1)
     {
-        char key = keypad_getkey();
+        float distancia = medir_distancia();// thingy for ultrasonic sensor
 
-        if (key == 1)
+        // Detect obstacle 3cm away
+        if(distancia <= 3.0)
         {
-            distance = medir_distancia();
-
-            sprintf(buffer,"%.2f cm",distance);
-
             LCD_command(0x01);
-            LCD_sendstring(buffer);
+            LCD_sendstring("OBSTACULO");
 
-            delayMs(500);
+            motor_backward();
+            delayMs(1000);
+
+            posX -= 2;
+            if(posX < 0) posX = 0;
+        }
+        else
+        {
+            motor_forward();
+
+            posX += 1;
+
+            if(posX >= targetX && posY < targetY)
+            {
+                posY += 1;
+            }
         }
 
-        if (key == 13)
+        LCD_command(0x01);
+
+        sprintf(buffer,"X:%.0f Y:%.0f",posX,posY);//show coordinates in LCD
+        LCD_sendstring(buffer);
+
+        delayMs(300);
+
+        if(posX >= targetX && posY >= targetY)
         {
-            estado = RUNNING;
-            contador_100ms = 0;
+            motor_stop();
 
             LCD_command(0x01);
-            LCD_sendstring("RUNNING");
-        }
+            LCD_sendstring("DESTINO");
 
-        delayMs(10);
+            LCD_command(0xC0);
+            LCD_sendstring("ALCANZADO");
+
+            while(1);
+        }
     }
 }
 
-// ULTRASONICO
+// MOTOR INITIALIZATION
+void motor_init(void)
+{
+    SIM->SCGC5 |= 0x0400; //clock enable
+
+    PORTB->PCR[2] = 0x100; //PIN as GPIO
+    PORTB->PCR[3] = 0x100;
+    PORTB->PCR[4] = 0x100;
+    PORTB->PCR[5] = 0x100;
+
+    PTB->PDDR |= IN1|IN2|IN3|IN4; //out
+}
+
+void motor_forward(void)
+{
+    PTB->PSOR = IN1|IN3;//1
+    PTB->PCOR = IN2|IN4;//0
+}
+
+void motor_backward(void)
+{
+    PTB->PSOR = IN2|IN4;//1
+    PTB->PCOR = IN1|IN3;//0
+}
+
+void motor_stop(void)
+{
+    PTB->PCOR = IN1|IN2|IN3|IN4;//0
+}
+
+// ULTRASONIC
 void ultrasonic_init(void)
 {
-    SIM->SCGC5 |= 0x0400;
+    SIM->SCGC5 |= 0x0400;//clock enable
 
-    PORTB->PCR[0] = 0x100;
+    PORTB->PCR[0] = 0x100;// PIN as GPIO
     PORTB->PCR[1] = 0x100;
 
-    PTB->PDDR |= 0x01;
-    PTB->PDDR &= ~0x02;
+    PTB->PDDR |= TRIG; //out
+    PTB->PDDR &= ~ECHO; //IN
 }
 
 float medir_distancia(void)
 {
     uint32_t tiempo = 0;
 
-    PTB->PCOR = 0x01;
+    PTB->PCOR = TRIG;// init 0
     delayUs(2);
 
-    PTB->PSOR = 0x01;
+    PTB->PSOR = TRIG;// TRIGGER 1
     delayUs(10);
-    PTB->PCOR = 0x01;
+    PTB->PCOR = TRIG;// TRIGGER 0
 
-    while(!(PTB->PDIR & 0x02));
+    while(!(PTB->PDIR & ECHO));//while echo = 0 wait
 
-    while(PTB->PDIR & 0x02)
+    while(PTB->PDIR & ECHO)// when echo = 1 count
     {
         tiempo++;
         delayUs(1);
     }
 
-    return (tiempo * 0.0343) / 2;
-}
-
-// TIMER
-void Init_TPM0(void)
-{
-    SIM->SCGC6 |= 0x01000000;
-    SIM->SOPT2 |= 0x01000000;
-
-    TPM0->SC = 0;
-    TPM0->MOD = 37500;
-
-    TPM0->SC = 0x07 | 0x40 | 0x08;
-
-    NVIC_EnableIRQ(TPM0_IRQn);
-}
-
-void TPM0_IRQHandler(void)
-{
-    TPM0->SC |= 0x80;
-
-    if (estado == PAUSED) return;
-
-    contador_100ms++;
+    return (tiempo * 0.0343)/2;
 }
 
 // KEYPAD
 void keypad_init(void)
 {
-    SIM->SCGC5 |= 0x0800;
+    SIM->SCGC5 |= 0x0800; //clock enable
 
-    for (int i = 0; i < 8; i++)
-        PORTC->PCR[i] = 0x103;
+    for(int i=0;i<8;i++)
+        PORTC->PCR[i]=0x103;// PIN as GPIO
 
-    PTC->PDDR = 0x0F;
+    PTC->PDDR=0x0F;// LPTC as 1
 }
 
 char keypad_getkey(void)
@@ -177,79 +252,136 @@ char keypad_getkey(void)
     if (col == 0xE0) return row*4+1;
     if (col == 0xD0) return row*4+2;
     if (col == 0xB0) return row*4+3;
-
-    if (col == 0x70)
-    {
-        if(row == 0) return 'A';
-        if(row == 1) return 'B';
-        if(row == 2) return 'C';
-        if(row == 3) return 'D';
-    }
+    if (col == 0x70) return row*4+4;
 
     return 0;
 }
 
-// LCD
+float keypad_getnumber(char axis)
+{
+    char input[8];
+    int index=0;
+    char key;
+
+    LCD_command(0x01);
+
+    sprintf(buffer,"Ingresa %c:",axis);
+    LCD_sendstring(buffer);
+
+    LCD_command(0xC0);
+
+    while(1)
+    {
+        key = keypad_getkey();
+
+        if(key >= 1 && key <= 9)
+        {
+            input[index++] = key + '0';
+            LCD_data(key + '0');
+            delayMs(250);
+        }
+
+        if(key == 14) // tecla 0
+        {
+            input[index++] = '0';
+            LCD_data('0');
+            delayMs(250);
+        }
+
+        if(key == 13) // tecla *
+        {
+            input[index] = '\0';
+            return atof(input);
+        }
+    }
+}
+
+// LCD INITIALIZATION
 void LCD_init(void)
 {
     SIM->SCGC5 |= 0x1000;
 
-    for(int i=0;i<8;i++)
-        PORTD->PCR[i]=0x100;
+    PORTD->PCR[0]=0x100;
+    PORTD->PCR[1]=0x100;
+    PORTD->PCR[2]=0x100;
+    PORTD->PCR[3]=0x100;
 
-    PTD->PDDR = 0xFF;
+    PTD->PDDR |= 0x0F;
 
     SIM->SCGC5 |= 0x0200;
-    PORTA->PCR[2]=PORTA->PCR[4]=PORTA->PCR[5]=0x100;
+
+    PORTA->PCR[2]=0x100;
+    PORTA->PCR[4]=0x100;
+    PORTA->PCR[5]=0x100;
+
     PTA->PDDR |= 0x34;
 
     delayMs(30);
 
-    LCD_command(0x30); delayMs(10);
-    LCD_command(0x30); delayMs(1);
-    LCD_command(0x30);
+    LCD_nibble(0x03);
+    delayMs(5);
 
-    LCD_command(0x38);
+    LCD_nibble(0x03);
+    delayUs(150);
+
+    LCD_nibble(0x03);
+    delayUs(150);
+
+    LCD_nibble(0x02);
+
+    LCD_command(0x28);
+    LCD_command(0x0C);
     LCD_command(0x06);
     LCD_command(0x01);
-    LCD_command(0x0F);
+}
+
+void LCD_nibble(unsigned char data)
+{
+    PTD->PCOR=0x0F;
+    PTD->PSOR=(data&0x0F);
+
+    PTA->PSOR=EN;
+    delayUs(50);
+    PTA->PCOR=EN;
 }
 
 void LCD_command(unsigned char command)
 {
-    PTA->PCOR = RS | RW;
-    PTD->PDOR = command;
-    PTA->PSOR = EN;
-    delayMs(1);
-    PTA->PCOR = EN;
+    PTA->PCOR=RS|RW;
+
+    LCD_nibble((command>>4)&0x0F);
+    LCD_nibble(command&0x0F);
+
+    delayMs(2);
 }
 
 void LCD_data(unsigned char data)
 {
-    PTA->PSOR = RS;
-    PTA->PCOR = RW;
-    PTD->PDOR = data;
-    PTA->PSOR = EN;
-    delayMs(1);
-    PTA->PCOR = EN;
+    PTA->PSOR=RS;
+    PTA->PCOR=RW;
+
+    LCD_nibble((data>>4)&0x0F);
+    LCD_nibble(data&0x0F);
+
+    delayUs(50);
 }
 
 void LCD_sendstring(char *str)
 {
-    while (*str)
+    while(*str)
         LCD_data(*str++);
 }
 
 // DELAYS
+void delayUs(int n)
+{
+    for(int i=0;i<n*50;i++)
+        __asm("nop");
+}
+
 void delayMs(int n)
 {
     for(int i=0;i<n;i++)
         for(int j=0;j<3000;j++)
             __asm("nop");
-}
-
-void delayUs(int n)
-{
-    for(int i=0;i<n*50;i++)
-        __asm("nop");
 }
