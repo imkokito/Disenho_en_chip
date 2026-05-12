@@ -27,10 +27,11 @@
 
 // INPUT MOTORES CON L293D
 // PTB2-PTB5
-#define IN1 0x04
-#define IN2 0x08
-#define IN3 0x10
-#define IN4 0x20
+#define IN1 0x04   // PTB2
+#define IN2 0x08   // PTB3
+
+#define IN3 0x100  // PTC8
+#define IN4 0x200  // PTC9
 
 // VARIABLES GLOBALES
 char buffer[32];
@@ -147,32 +148,40 @@ int main(void)
 // MOTOR INITIALIZATION
 void motor_init(void)
 {
-    SIM->SCGC5 |= 0x0400; //clock enable
+    SIM->SCGC5 |= 0x0400; // PORTB CLOCK
+    SIM->SCGC5 |= 0x0800; // PORTC CLOCK
 
-    PORTB->PCR[2] = 0x100; //PIN as GPIO
+    PORTB->PCR[2] = 0x100; //PIN AS GPIO
     PORTB->PCR[3] = 0x100;
-    PORTB->PCR[4] = 0x100;
-    PORTB->PCR[5] = 0x100;
 
-    PTB->PDDR |= IN1|IN2|IN3|IN4; //out
+    PORTC->PCR[8] = 0x100;
+    PORTC->PCR[9] = 0x100;
+
+    PTB->PDDR |= IN1 | IN2; //out
+    PTC->PDDR |= IN3 | IN4;
 }
-
 void motor_forward(void)
 {
-    PTB->PSOR = IN1|IN3;//1
-    PTB->PCOR = IN2|IN4;//0
-}
+    PTB->PSOR = IN1; //1
+    PTB->PCOR = IN2; //0
 
+    PTC->PSOR = IN3; //1
+    PTC->PCOR = IN4; //0
+}
 void motor_backward(void)
 {
-    PTB->PSOR = IN2|IN4;//1
-    PTB->PCOR = IN1|IN3;//0
-}
+    PTB->PSOR = IN2; //1
+    PTB->PCOR = IN1; //0
 
+    PTC->PSOR = IN4; //1
+    PTC->PCOR = IN3; //0
+}
 void motor_stop(void)
 {
-    PTB->PCOR = IN1|IN2|IN3|IN4;//0
+    PTB->PCOR = IN1 | IN2; //0
+    PTC->PCOR = IN3 | IN4;
 }
+
 
 // ULTRASONIC
 void ultrasonic_init(void)
