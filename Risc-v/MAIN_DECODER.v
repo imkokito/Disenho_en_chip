@@ -1,7 +1,9 @@
+//código para la unidad principal de las señales de control
+//recibe lo de la instrucción y genera las señales de control para poder controlar el camino que toman los datos
 module MAIN_DECODER (
-    input [6:0] opcode,
+    input [6:0] opcode, //recibe el opcode de la instrucción que vamos a hacer y la señal del zero
     input zero,
-    output reg PC_src,
+    output reg PC_src, //manda las señales de control para el PC, la memoria, ALU, escribir registros, etc
     output reg [1:0] Result_src,
     output reg mem_write,
     output reg ALU_src,
@@ -13,7 +15,7 @@ module MAIN_DECODER (
 
 
 always @(*) begin
-    case (opcode)
+    case (opcode) 
         7'b0000011: begin // I_type (3)
             PC_src = 0;
             Result_src = 0;
@@ -87,4 +89,6 @@ always @(*) begin
     endcase
 end
 endmodule 
+
+
 
