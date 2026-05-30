@@ -1,3 +1,4 @@
+//codigo para seleccionar alguna entrada segun el select
 module MUX(
     input [31:0] in0, in1, in2, in3,
     input [1:0] select,
