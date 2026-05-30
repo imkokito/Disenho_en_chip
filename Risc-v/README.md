@@ -327,7 +327,7 @@ This confirms that the processor correctly executes immediate addition and regis
 
 Replace the image name with your simulation screenshot:
 
-![Test 1 Simulation](test1_simulation.png)
+![Test 1 Simulation](tb_top.png)
 
 ---
 
