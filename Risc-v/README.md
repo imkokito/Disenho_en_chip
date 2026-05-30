@@ -281,7 +281,7 @@ The general flow is:
 
 Replace the image name with your final diagram file:
 
-![Complete Datapath Diagram](datapath_diagram.png)
+![Complete Datapath Diagram](diagrama.png)
 
 ---
 
