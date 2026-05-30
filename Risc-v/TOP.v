@@ -1,27 +1,51 @@
+//codigo del módulo principal del procesador RISC-V single-cycle.
+//aqui se conectan todos los bloques del procesador:
 module TOP(
     input clk,
     input rst
 );
 
-wire [31:0] PC, PC_next, PC_plus, PC_target, instr;
-wire [31:0] RD1, RD2, A, B; 
+//señales relacionadas con el Program Counter
+wire [31:0] PC;         //Valor actual del PC
+wire [31:0] PC_next;    
+wire [31:0] PC_plus;    //Valor del PC, para la siguiente instrucción
+wire [31:0] PC_target;  // Dirección a donde saltar
 
+//instrucción leída de la memoria de instrucciones
+wire [31:0] instr;
 
+//salidas del banco de registros
+wire [31:0] RD1;        //dato del registro rs1
+wire [31:0] RD2;        //dato del registro rs2
+
+//entradas de la ALU
+wire [31:0] A;         
+wire [31:0] B;         
+
+//resultado de la ALU
 wire [31:0] ALUResult;
+
+//inmediato extendido por el EXTENDER
 wire [31:0] imm_ext;
+
+//dato leído desde la memoria de datos
 wire [31:0] read_data;
+
+//dato que se escribe en los registros
 wire [31:0] result;
 
+//señal del Zero generada por la ALU.
 wire zero;
 
-wire PCSrc;
-wire [1:0] ResultSrc;
-wire MemWrite;
-wire ALUSrc;
-wire RegWrite;
-wire [1:0] ALUOp;
-wire [1:0] ImmSrc;
-wire [2:0] ALUControl;
+// Señales de control del MAIN_DECODER y el ALU_DECODER
+wire PCSrc;             //dice si el siguiente PC es PC+4 o PC_target
+wire [1:0] ResultSrc;   //dice si lo que se escribe en rd viene de la ALU o de la memoria
+wire MemWrite;          //hablita escribir en la memoria
+wire ALUSrc;            //dice si el segundo factor viene del registro o del inmediato
+wire RegWrite;          //habilita escribir en el registro destino
+wire [1:0] ALUOp;       //operacion que tiene que hacer la ALU
+wire [1:0] ImmSrc;      //dice que inmediato generar
+wire [2:0] ALUControl;  //codigo que recibe la ALU desde el ALU_DECODER, es lo de ALUOp
 
 //instancias
 //PROGRAM COUNTER
